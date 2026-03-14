@@ -22,5 +22,59 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+  .tracking-tightest {
+    letter-spacing: -0.05em;
+  }
+}
+
+.premium-calendar .fc {
+  --fc-border-color: transparent;
+  --fc-daygrid-dot-event-marker-size: 8px;
+  --fc-list-event-dot-width: 10px;
+  --fc-today-bg-color: rgba(0, 0, 0, 0.03);
+}
+
+.dark .premium-calendar .fc {
+  --fc-today-bg-color: rgba(255, 255, 255, 0.03);
+}
+
+.fc-toolbar-title {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.fc-button-primary {
+  background-color: transparent !important;
+  border: 1px solid #e5e7eb !important;
+  color: inherit !important;
+  border-radius: 9999px !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.2s !important;
+}
+
+.dark .fc-button-primary {
+  border-color: #27272a !important;
+}
+
+.fc-button-primary:hover {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #000 !important;
+}
+
+.dark .fc-button-primary:hover {
+  background-color: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
 }
