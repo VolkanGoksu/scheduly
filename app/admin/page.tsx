@@ -1,9 +1,11 @@
 "use client";
 export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { translations, Language } from "@/lib/i18n";
+import { createProviderAction } from "@/app/actions/admin-actions";
 
 export default function AdminPage() {
   const [lang, setLang] = useState<Language>('tr');
@@ -64,48 +66,31 @@ export default function AdminPage() {
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const result = await createProviderAction({
         email: email.trim(),
         password,
+        businessName,
+        phoneNumber,
+        slug,
+        staffMembers
       });
 
-      if (authError) throw authError;
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      const { error: profileError } = await supabase.from("users").insert({
-        id: authData.user?.id,
-        email: email.trim(),
-        business_name: businessName,
-        phone_number: phoneNumber,
-        slug: slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        role: 'provider',
-        is_active: true,
-        activated_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString()
-      });
-
-      if (profileError) throw profileError;
-
-      for (const s of staffMembers) {
-        if (s.name.trim()) {
-          await supabase.from("staff").insert({
-            user_id: authData.user?.id,
-            name: s.name,
-            phone_number: s.phone
-          });
-        }
+      if (!result.success) {
+        console.error("Action Failed:", result.error);
+        alert(`İŞLETME OLUŞTURULAMADI!\n\nHata: ${result.error}\n\nÖNEMLİ: Eğer localde çalışıyorsan .env.local dosyasına SUPABASE_SERVICE_ROLE_KEY eklediğinden emin ol. Vercel'deysen Environment Variables kısmına ekle.`);
+        return;
       }
-      alert("Başarıyla oluşturuldu!");
+
+      alert("✅ İşletme ve ekip başarıyla oluşturuldu!");
       setEmail(""); setPassword(""); setBusinessName(""); setPhoneNumber(""); setSlug(""); setStaffMembers([{ name: "", phone: "" }]);
-      fetchProviders();
+      await fetchProviders();
     } catch (err: any) {
-      alert("Hata: " + (err.message || "Bilinmeyen hata"));
+      alert("Beklenmedik Hata: " + err.message);
     } finally {
       setLoading(false);
     }
   };
+
   const deleteProvider = async (id: string) => {
     if (!confirm("BU İŞLETMEYİ TAMAMEN SİLMEK İSTEDİĞİNE EMİN MİSİN?")) return;
     console.log("RPC Call: admin_delete_provider for:", id);
@@ -309,7 +294,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Modal - same as before but ensured to work with fetchProviders */}
+      {/* Modal */}
       {selectedProvider && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[100] flex items-center justify-center p-4" onClick={() => setSelectedProvider(null)}>
           <div className="bg-white dark:bg-zinc-900 w-full max-w-5xl rounded-[5rem] shadow-[0_0_100px_rgba(0,0,0,0.7)] overflow-hidden border border-zinc-100 dark:border-zinc-800 animate-in fade-in zoom-in duration-500" onClick={e => e.stopPropagation()}>
