@@ -58,12 +58,12 @@ export default function BookingPage() {
     fetchData();
   }, [slug]);
 
-  // 2️⃣ Load available slots for selected service (Next 7 days)
+  // 2️⃣ Load booked slots (to show them as busy)
   useEffect(() => {
-    if (!selectedService || !user) return;
+    if (!user) return;
 
-    async function fetchAllSlots() {
-      const allEvents = [];
+    async function fetchBookedData() {
+      const allBusyEvents = [];
       const now = new Date();
       
       for (let i = 0; i < 7; i++) {
@@ -71,25 +71,47 @@ export default function BookingPage() {
         targetDate.setDate(now.getDate() + i);
         const dateStr = targetDate.toISOString().split('T')[0];
         
-        const slots = await getAvailableSlots(user.id, selectedService.duration, dateStr);
-        
-        const dayEvents = slots.map((hour: string) => ({
-          title: lang === 'tr' ? 'MÜSAİT' : 'AVAILABLE',
-          start: `${dateStr}T${hour}:00`,
-          backgroundColor: "#10b981", // Emerald 500
-          borderColor: "#059669",
-          textColor: "#ffffff"
-        }));
-        allEvents.push(...dayEvents);
-      }
+        const { data: appointments } = await supabase
+          .from("appointments")
+          .select("time, status")
+          .eq("user_id", user.id)
+          .eq("date", dateStr)
+          .neq("status", "rejected");
 
-      setEvents(allEvents);
+        if (appointments) {
+          appointments.forEach(app => {
+            allBusyEvents.push({
+              title: lang === 'tr' ? 'DOLU' : 'BUSY',
+              start: `${dateStr}T${app.time}`,
+              display: 'background',
+              color: '#f1f5f9',
+              extendedProps: { isBooked: true }
+            });
+            // Also add a regular event on top to show text
+            allBusyEvents.push({
+              title: lang === 'tr' ? 'DOLU' : 'BUSY',
+              start: `${dateStr}T${app.time}`,
+              className: 'premium-event',
+              extendedProps: { isBooked: true }
+            });
+          });
+        }
+      }
+      setEvents(allBusyEvents);
     }
 
-    fetchAllSlots();
-  }, [selectedService, user]);
+    fetchBookedData();
+  }, [user, lang]);
 
   const handleSelectSlot = (start: string) => {
+    // Check if slot is in the past
+    if (new Date(start) < new Date()) {
+      return;
+    }
+    // Check if slot is already booked
+    const isBooked = events.some(e => e.start === start && e.extendedProps?.isBooked);
+    if (isBooked) return;
+
     setSelectedSlot(start);
   };
 

@@ -30,11 +30,13 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
         locales={[trLocale]}
         firstDay={1}
         selectable={true}
-        events={events}
+        events={events} // Booked slots will be passed here as events
+        validRange={{
+          start: new Date().toISOString().split('T')[0]
+        }}
         slotMinTime="08:00:00"
         slotMaxTime="22:00:00"
         dateClick={handleDateClick}
-        eventClick={handleEventClick}
         allDaySlot={false}
         height="auto"
         expandRows={true}
@@ -126,28 +128,19 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
           color: #a1a1aa;
         }
         .premium-event {
-          background: rgba(16, 185, 129, 0.05) !important;
-          border: 1px dashed #10b981 !important;
-          color: #059669 !important;
-          border-radius: 8px !important;
-          padding: 2px 4px !important;
+          background: #f1f5f9 !important;
+          border: 1px solid #e2e8f0 !important;
+          color: #94a3b8 !important;
+          border-radius: 4px !important;
+          opacity: 0.8;
+          pointer-events: none;
+        }
+        .fc-timegrid-slot {
           cursor: pointer;
-          transition: all 0.2s;
+          transition: background-color 0.1s;
         }
-        .premium-event:hover {
-          background: rgba(16, 185, 129, 0.15) !important;
-          transform: translateY(-1px);
-        }
-        .fc-event-main-frame {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .fc-event-title {
-          font-weight: 800 !important;
-          text-transform: uppercase !important;
-          font-size: 0.6rem !important;
-          letter-spacing: 0.05em !important;
+        .fc-timegrid-slot:hover {
+          background-color: rgba(16, 185, 129, 0.05) !important;
         }
         .premium-header {
           background: #f8fafc !important;
