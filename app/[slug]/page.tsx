@@ -159,6 +159,7 @@ export default function BookingPage() {
     setBookingLoading(true);
 
     const [targetDate, targetTime] = selectedSlot.split('T');
+    const displayTime = targetTime.substring(0, 5); // From "HH:mm:ss..." to "HH:mm"
 
     try {
       const { data: newApp, error: appError } = await supabase
@@ -176,7 +177,16 @@ export default function BookingPage() {
         .select('id')
         .single();
 
-      if (appError) throw appError;
+      if (appError) {
+        if (appError.code === '23505') { // Unique constraint violation
+          alert(lang === 'tr' 
+            ? "Üzgünüz, bu saat dilimi az önce başkası tarafından alındı! Lütfen farklı bir saat seçin." 
+            : "Sorry, this slot was just taken by someone else! Please select another time.");
+          window.location.reload(); // Force refresh to show updated calendar
+          return;
+        }
+        throw appError;
+      }
 
       // 4️⃣ Generate WhatsApp Link for the selected staff
       const staffPhone = selectedStaff.phone_number || user.phone_number;
@@ -188,8 +198,8 @@ export default function BookingPage() {
       const approvalUrl = `${baseUrl}/approve/${newApp.id}`;
       
       const message = lang === 'tr' 
-        ? `*Yeni Randevu Bildirimi* 📅\n\nMerhaba *${selectedStaff.name}*, ${targetDate} tarihinde saat *${targetTime}* için *${selectedService.name}* randevusu oluşturuldu.\n\nRandevuyu onaylamak veya reddetmek için lütfen tıklayın: ${approvalUrl}`
-        : `*New Appointment Notification* 📅\n\nHello *${selectedStaff.name}*, a new appointment for *${selectedService.name}* has been booked on ${targetDate} at *${targetTime}*.\n\nPlease click here to approve or reject: ${approvalUrl}`;
+        ? `*Yeni Randevu Bildirimi* 📅\n\nMerhaba *${selectedStaff.name}*, ${targetDate} tarihinde saat *${displayTime}* için *${selectedService.name}* randevusu oluşturuldu.\n\nRandevuyu onaylamak veya reddetmek için lütfen tıklayın: ${approvalUrl}`
+        : `*New Appointment Notification* 📅\n\nHello *${selectedStaff.name}*, a new appointment for *${selectedService.name}* has been booked on ${targetDate} at *${displayTime}*.\n\nPlease click here to approve or reject: ${approvalUrl}`;
       
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
@@ -197,6 +207,7 @@ export default function BookingPage() {
       setAppointmentId(newApp.id);
       setSuccess(true);
     } catch (error: any) {
+      console.error("Booking Error:", error);
       alert(error.message);
     } finally {
       setBookingLoading(false);
