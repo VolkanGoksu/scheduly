@@ -74,10 +74,11 @@ export default function BookingPage() {
         const slots = await getAvailableSlots(user.id, selectedService.duration, dateStr);
         
         const dayEvents = slots.map((hour: string) => ({
-          title: t.confirm,
+          title: lang === 'tr' ? 'MÜSAİT' : 'AVAILABLE',
           start: `${dateStr}T${hour}:00`,
-          backgroundColor: "#10b981",
+          backgroundColor: "#10b981", // Emerald 500
           borderColor: "#059669",
+          textColor: "#ffffff"
         }));
         allEvents.push(...dayEvents);
       }

@@ -26,17 +26,20 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
-        locales={[trLocale]}
         locale="tr"
+        locales={[trLocale]}
         firstDay={1}
         selectable={true}
         events={events}
         slotMinTime="08:00:00"
-        slotMaxTime="21:00:00"
+        slotMaxTime="22:00:00"
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         allDaySlot={false}
         height="700px"
+        expandRows={true}
+        stickyHeaderDates={true}
+        nowIndicator={true}
         headerToolbar={{
           left: 'prev,next today',
           center: 'title',
@@ -50,14 +53,12 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
         dayHeaderFormat={{
           weekday: 'long',
           day: 'numeric',
-          month: 'short'
+          month: 'long'
         }}
         eventClassNames="premium-event"
         slotDuration="00:30:00"
-        nowIndicator={true}
-        expandRows={true}
-        stickyHeaderDates={true}
         handleWindowResize={true}
+        dayHeaderClassNames="premium-header"
       />
       <style jsx global>{`
         .premium-calendar-wrapper {
@@ -145,6 +146,22 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
           text-transform: uppercase !important;
           font-size: 0.65rem !important;
           letter-spacing: 0.05em !important;
+        }
+        .premium-header {
+          background: #f8fafc !important;
+          border-bottom: 2px solid #e2e8f0 !important;
+        }
+        .dark .premium-header {
+          background: #0f172a !important;
+          border-bottom: 2px solid #1e293b !important;
+        }
+        .fc-col-header-cell-cushion {
+          padding: 10px 0 !important;
+          font-weight: 800 !important;
+          color: #1e293b !important;
+        }
+        .dark .fc-col-header-cell-cushion {
+          color: #f1f5f9 !important;
         }
       `}</style>
     </div>
