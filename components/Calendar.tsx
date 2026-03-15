@@ -128,35 +128,54 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
           color: #a1a1aa;
         }
         .premium-event {
-          background: rgba(239, 68, 68, 0.1) !important;
-          border: 1px solid rgba(239, 68, 68, 0.2) !important;
-          color: #dc2626 !important;
-          border-radius: 4px !important;
-          font-weight: 800 !important;
+          background: #fee2e2 !important; /* light red */
+          border: 1px solid #f87171 !important; /* red-400 */
+          color: #991b1b !important; /* dark red */
+          border-radius: 6px !important;
+          font-weight: 900 !important;
+          text-align: center !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
           pointer-events: none;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        }
+        .dark .premium-event {
+          background: #7f1d1d !important; /* very dark red */
+          border: 1px solid #dc2626 !important;
+          color: #fecaca !important; /* light red text */
         }
         .fc-timegrid-slot {
           cursor: pointer;
           transition: background-color 0.1s;
         }
         .fc-timegrid-slot:hover {
-          background-color: rgba(16, 185, 129, 0.05) !important;
+          background-color: rgba(16, 185, 129, 0.08) !important;
         }
         .premium-header {
-          background: #f8fafc !important;
-          border-bottom: 2px solid #e2e8f0 !important;
+          background: #ffffff !important;
+          border-bottom: 2px solid #f1f5f9 !important;
         }
         .dark .premium-header {
-          background: #0f172a !important;
-          border-bottom: 2px solid #1e293b !important;
+          background: #09090b !important;
+          border-bottom: 2px solid #27272a !important;
         }
         .fc-col-header-cell-cushion {
-          padding: 10px 0 !important;
-          font-weight: 800 !important;
-          color: #1e293b !important;
+          padding: 12px 0 !important;
+          font-weight: 900 !important;
+          color: #0f172a !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.025em !important;
         }
         .dark .fc-col-header-cell-cushion {
-          color: #f1f5f9 !important;
+          color: #f8fafc !important;
+        }
+        .fc-timegrid-slot-label-cushion {
+          font-weight: 700 !important;
+          color: #64748b !important;
+        }
+        .dark .fc-timegrid-slot-label-cushion {
+          color: #94a3b8 !important;
         }
       `}</style>
     </div>

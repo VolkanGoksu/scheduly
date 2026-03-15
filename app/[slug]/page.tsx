@@ -80,17 +80,16 @@ export default function BookingPage() {
 
         if (appointments) {
           appointments.forEach(app => {
-            // Background red overlay
+            // Background subtle red
             allBusyEvents.push({
-              title: lang === 'tr' ? 'DOLU' : 'BUSY',
               start: `${dateStr}T${app.time}`,
               display: 'background',
-              color: 'rgba(239, 68, 68, 0.05)',
+              color: 'rgba(239, 68, 68, 0.1)',
               extendedProps: { isBooked: true }
             });
-            // Text event
+            // Foreground CLEAR BOLD RED TEXT
             allBusyEvents.push({
-              title: lang === 'tr' ? 'DOLU' : 'BUSY',
+              title: lang === 'tr' ? 'REZERVE' : 'BOOKED',
               start: `${dateStr}T${app.time}`,
               className: 'premium-event',
               extendedProps: { isBooked: true }
