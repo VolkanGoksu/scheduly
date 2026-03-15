@@ -31,16 +31,26 @@ export default function BookingPage() {
     if (!slug) return;
 
     async function fetchData() {
-      const { data: userData } = await supabase
+      console.log("Fetching data for slug:", slug);
+      const { data: userData, error: userError } = await supabase
         .from("users")
         .select("*")
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
+
+      if (userError) {
+        console.error("User fetch error:", userError);
+        alert("İşletme bilgisi alınamadı (RLS veya bağlantı hatası)");
+        return;
+      }
 
       if (!userData) {
+        console.log("User not found for slug:", slug);
         setUser({ notFound: true });
         return;
       }
+
+      console.log("User found:", userData.business_name, "ID:", userData.id);
 
       if (!userData.is_active || (userData.expires_at && new Date(userData.expires_at) < new Date())) {
         setUser({
@@ -53,17 +63,27 @@ export default function BookingPage() {
 
       setUser(userData);
 
-      const { data: servicesData } = await supabase
+      // Fetch Services
+      const { data: servicesData, error: sError } = await supabase
         .from("services")
         .select("*")
         .eq("user_id", userData.id);
+      
+      if (sError) {
+        console.error("Services fetch error:", sError);
+        alert("Hizmetler yüklenirken hata oluştu (RLS kontrol edin)");
+      }
+      console.log("Services loaded:", servicesData?.length || 0);
       setServices(servicesData || []);
 
-      const { data: staffData } = await supabase
+      // Fetch Staff
+      const { data: staffData, error: stError } = await supabase
         .from("staff")
         .select("*")
         .eq("user_id", userData.id)
         .eq("is_active", true);
+      
+      if (stError) console.error("Staff fetch error:", stError);
       setStaff(staffData || []);
     }
 
@@ -94,18 +114,18 @@ export default function BookingPage() {
           query = query.eq("staff_id", selectedStaff.id);
         }
 
-        const { data: appointments } = await query;
+        const { data: appointments, error: appError } = await query;
+
+        if (appError) console.error("Appointments fetch error:", appError);
 
         if (appointments) {
           appointments.forEach(app => {
-            // Background subtle red
             allBusyEvents.push({
               start: `${dateStr}T${app.time}`,
               display: 'background',
               color: 'rgba(239, 68, 68, 0.1)',
               extendedProps: { isBooked: true }
             });
-            // Foreground CLEAR BOLD RED TEXT
             allBusyEvents.push({
               title: lang === 'tr' ? 'REZERVE' : 'BOOKED',
               start: `${dateStr}T${app.time}`,
