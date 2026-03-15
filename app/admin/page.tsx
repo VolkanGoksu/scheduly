@@ -2,10 +2,9 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseNoSession } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { translations, Language } from "@/lib/i18n";
-import { createProviderAction } from "@/app/actions/admin-actions";
 
 export default function AdminPage() {
   const [lang, setLang] = useState<Language>('tr');
@@ -66,26 +65,61 @@ export default function AdminPage() {
     setLoading(true);
 
     try {
-      const result = await createProviderAction({
-        email: email.trim(),
-        password,
-        businessName,
-        phoneNumber,
-        slug,
-        staffMembers
-      });
-
-      if (!result.success) {
-        console.error("Action Failed:", result.error);
-        alert(`İŞLETME OLUŞTURULAMADI!\n\nHata: ${result.error}\n\nÖNEMLİ: Eğer localde çalışıyorsan .env.local dosyasına SUPABASE_SERVICE_ROLE_KEY eklediğinden emin ol. Vercel'deysen Environment Variables kısmına ekle.`);
+      // 1. Pre-check Slug & Email to avoid 422
+      const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const { data: existingUser } = await supabase.from("users").select("id").or(`email.eq.${email.trim()},slug.eq.${cleanSlug}`).maybeSingle();
+      
+      if (existingUser) {
+        alert("BU EMAIL VEYA SLUG ZATEN KULLANIMDA! Lütfen farklı bir tane deneyin.");
+        setLoading(false);
         return;
       }
 
-      alert("✅ İşletme ve ekip başarıyla oluşturuldu!");
+      // 2. Sign up using NO-SESSION client (keeps admin logged in)
+      const { data: authData, error: authError } = await supabaseNoSession.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Kullanıcı oluşturulamadı.");
+
+      const userId = authData.user.id;
+
+      // 3. Create Profile
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const { error: profileError } = await supabase.from("users").insert({
+        id: userId,
+        email: email.trim(),
+        business_name: businessName,
+        phone_number: phoneNumber,
+        slug: cleanSlug,
+        role: 'provider',
+        is_active: true,
+        activated_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString()
+      });
+
+      if (profileError) throw profileError;
+
+      // 4. Create Staff
+      for (const s of staffMembers) {
+        if (s.name.trim()) {
+          await supabase.from("staff").insert({
+            user_id: userId,
+            name: s.name,
+            phone_number: s.phone
+          });
+        }
+      }
+
+      alert("✅ İşletme başarıyla oluşturuldu!");
       setEmail(""); setPassword(""); setBusinessName(""); setPhoneNumber(""); setSlug(""); setStaffMembers([{ name: "", phone: "" }]);
       await fetchProviders();
     } catch (err: any) {
-      alert("Beklenmedik Hata: " + err.message);
+      alert("Hata: " + (err.message || "Bilinmeyen hata"));
     } finally {
       setLoading(false);
     }
