@@ -14,7 +14,18 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 export async function createProviderAction(formData: any) {
+  console.log("--- Server Action: createProviderAction Start ---");
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("CRITICAL: Supabase environment variables are MISSING!");
+    return {
+      success: false,
+      error: "Sunucu yapılandırması eksik (SUPABASE_SERVICE_ROLE_KEY bulunamadı)."
+    };
+  }
+
   const { email, password, businessName, phoneNumber, slug, staffMembers } = formData;
+  console.log("Creating provider for email:", email);
 
   try {
     // 1. Create user in auth.users (Admin API)
@@ -27,11 +38,17 @@ export async function createProviderAction(formData: any) {
     });
 
     if (authError) {
-      console.error("Auth Admin Error:", authError);
-      return { success: false, error: `Auth Hatası: ${authError.message}` };
+      console.error("Supabase Auth Admin Error:", authError);
+      return { success: false, error: `Supabase Auth Hatası: ${authError.message}` };
+    }
+
+    if (!authData?.user) {
+      console.error("Auth creation succeeded but no user returned.");
+      return { success: false, error: "Auth kaydı yapıldı ama kullanıcı verisi dönmedi." };
     }
 
     const userId = authData.user.id;
+    console.log("Auth user created. ID:", userId);
 
     // 2. Create profile in public.users
     const expiresAt = new Date();
@@ -50,25 +67,32 @@ export async function createProviderAction(formData: any) {
     });
 
     if (profileError) {
-      console.error("Profile Insert Error:", profileError);
-      // Optional: Cleanup auth user if profile fail?
-      return { success: false, error: `Profil Hatası: ${profileError.message}` };
+      console.error("Supabase Profile Insert Error:", profileError);
+      // Cleanup auth user on profile failure to allow retry
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      return { success: false, error: `Profil Kayıt Hatası: ${profileError.message}` };
     }
 
+    console.log("Profile created successfully.");
+
     // 3. Create staff members
-    for (const s of staffMembers) {
-      if (s.name.trim()) {
-        await supabaseAdmin.from("staff").insert({
-          user_id: userId,
-          name: s.name,
-          phone_number: s.phone
-        });
+    if (staffMembers && Array.isArray(staffMembers)) {
+      for (const s of staffMembers) {
+        if (s.name?.trim()) {
+          const { error: staffError } = await supabaseAdmin.from("staff").insert({
+            user_id: userId,
+            name: s.name,
+            phone_number: s.phone
+          });
+          if (staffError) console.error("Staff Insert Error:", staffError);
+        }
       }
     }
 
+    console.log("--- Server Action: createProviderAction Success ---");
     return { success: true };
   } catch (err: any) {
-    console.error("Unexpected Action Error:", err);
-    return { success: false, error: err.message };
+    console.error("FATAL: Unexpected Server Action Error:", err);
+    return { success: false, error: `Beklenmedik Sunucu Hatası: ${err.message}` };
   }
 }
