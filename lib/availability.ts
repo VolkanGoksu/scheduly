@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export async function getAvailableSlots(user_id: string, service_duration: number) {
+export async function getAvailableSlots(user_id: string, service_duration: number, date: string) {
   // 1️⃣ Get user settings (start/end hours)
   const { data: user } = await supabase
     .from("users")
@@ -13,13 +13,12 @@ export async function getAvailableSlots(user_id: string, service_duration: numbe
   const startHour = user.start_hour || 9;
   const endHour = user.end_hour || 18;
 
-  // 2️⃣ Get existing confirmed appointments for today
-  const today = new Date().toISOString().split('T')[0];
+  // 2️⃣ Get existing confirmed appointments for the specific date
   const { data: appointments } = await supabase
     .from("appointments")
     .select("time")
     .eq("user_id", user_id)
-    .eq("date", today)
+    .eq("date", date)
     .eq("status", "confirmed");
 
   const bookedTimes = appointments?.map((a: any) => a.time.substring(0, 5)) || [];

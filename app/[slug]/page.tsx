@@ -58,26 +58,34 @@ export default function BookingPage() {
     fetchData();
   }, [slug]);
 
-  // 2️⃣ Load available slots for selected service
+  // 2️⃣ Load available slots for selected service (Next 7 days)
   useEffect(() => {
     if (!selectedService || !user) return;
 
-    async function fetchSlots() {
-      const slots = await getAvailableSlots(user.id, selectedService.duration);
+    async function fetchAllSlots() {
+      const allEvents = [];
       const now = new Date();
-      const today = now.toISOString().split('T')[0];
+      
+      for (let i = 0; i < 7; i++) {
+        const targetDate = new Date(now);
+        targetDate.setDate(now.getDate() + i);
+        const dateStr = targetDate.toISOString().split('T')[0];
+        
+        const slots = await getAvailableSlots(user.id, selectedService.duration, dateStr);
+        
+        const dayEvents = slots.map((hour: string) => ({
+          title: t.confirm,
+          start: `${dateStr}T${hour}:00`,
+          backgroundColor: "#10b981",
+          borderColor: "#059669",
+        }));
+        allEvents.push(...dayEvents);
+      }
 
-      const events = slots.map((hour: string) => ({
-        title: t.confirm,
-        start: `${today}T${hour}:00`,
-        backgroundColor: "#10b981", // Emerald 500
-        borderColor: "#059669",
-      }));
-
-      setEvents(events);
+      setEvents(allEvents);
     }
 
-    fetchSlots();
+    fetchAllSlots();
   }, [selectedService, user]);
 
   const handleSelectSlot = (start: string) => {
@@ -239,16 +247,23 @@ Onayınızı bekliyorum.`;
           {/* Calendar Section */}
           <div className="lg:col-span-2">
             {!selectedService ? (
-              <div className="h-full min-h-[400px] flex items-center justify-center border-4 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl text-zinc-400 font-medium text-lg">
-                {lang === 'tr' ? 'Randevu takvimini görmek için hizmet seçin' : 'Choose a service to view availability'}
+              <div className="h-full min-h-[500px] flex flex-col items-center justify-center border-4 border-dashed border-zinc-100 dark:border-zinc-900 rounded-[3rem] text-zinc-400 font-medium text-lg p-12 text-center bg-white/30 dark:bg-zinc-900/30 backdrop-blur-sm">
+                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4 text-2xl">⚡</div>
+                {t.chooseService}
               </div>
             ) : (
-              <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl shadow-xl border border-zinc-200 dark:border-zinc-800">
-                <h2 className="text-2xl font-bold mb-8 flex justify-between items-center">
-                  {lang === 'tr' ? 'Bir Zaman Dilimi Seçin' : 'Select a Time Slot'}
-                  <span className="text-sm font-normal text-zinc-500">{lang === 'tr' ? 'Tüm saatler yereldir' : 'All times are local'}</span>
-                </h2>
-                <div className="calendar-container">
+              <div className="bg-white dark:bg-zinc-950 p-6 md:p-10 rounded-[3rem] shadow-2xl border border-zinc-100 dark:border-zinc-900 animate-in fade-in slide-in-from-right-8 duration-500">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                  <div>
+                    <h2 className="text-3xl font-black uppercase tracking-tightest">{t.selectTime}</h2>
+                    <p className="text-sm font-medium text-zinc-400 mt-1">{t.allTimesLocal}</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-2xl">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{t.confirm}</span>
+                  </div>
+                </div>
+                <div className="calendar-container overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-900">
                   <Calendar events={events} onSelect={handleSelectSlot} />
                 </div>
               </div>
@@ -283,7 +298,7 @@ Onayınızı bekliyorum.`;
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">{lang === 'tr' ? 'E-posta Adresiniz' : 'Email Address'}</label>
+                  <label className="block text-sm font-bold uppercase tracking-wider text-zinc-500 mb-2">{t.yourEmail}</label>
                   <input
                     type="email"
                     required
@@ -293,14 +308,13 @@ Onayınızı bekliyorum.`;
                     placeholder="you@example.com"
                   />
                 </div>
-                Riverside
                 <div className="pt-4">
                   <button
                     type="submit"
                     disabled={bookingLoading}
-                    className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-bold text-lg hover:opacity-90 transition-all disabled:opacity-50"
+                    className="w-full bg-black dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50 shadow-xl"
                   >
-                    {bookingLoading ? (lang === 'tr' ? 'Onaylanıyor...' : 'Confirming...') : (lang === 'tr' ? `${selectedService.price}₺ ile Randevu Al` : `Book for $${selectedService.price}`)}
+                    {bookingLoading ? (t.loading) : (`${t.bookFor} ${selectedService.price}₺`)}
                   </button>
                 </div>
               </form>
