@@ -63,7 +63,7 @@ export default function BookingPage() {
     if (!user) return;
 
     async function fetchBookedData() {
-      const allBusyEvents = [];
+      const allBusyEvents: any[] = [];
       const now = new Date();
       
       for (let i = 0; i < 7; i++) {
@@ -80,14 +80,15 @@ export default function BookingPage() {
 
         if (appointments) {
           appointments.forEach(app => {
+            // Background red overlay
             allBusyEvents.push({
               title: lang === 'tr' ? 'DOLU' : 'BUSY',
               start: `${dateStr}T${app.time}`,
               display: 'background',
-              color: '#f1f5f9',
+              color: 'rgba(239, 68, 68, 0.05)',
               extendedProps: { isBooked: true }
             });
-            // Also add a regular event on top to show text
+            // Text event
             allBusyEvents.push({
               title: lang === 'tr' ? 'DOLU' : 'BUSY',
               start: `${dateStr}T${app.time}`,

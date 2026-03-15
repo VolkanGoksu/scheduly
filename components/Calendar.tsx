@@ -128,11 +128,11 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
           color: #a1a1aa;
         }
         .premium-event {
-          background: #f1f5f9 !important;
-          border: 1px solid #e2e8f0 !important;
-          color: #94a3b8 !important;
+          background: rgba(239, 68, 68, 0.1) !important;
+          border: 1px solid rgba(239, 68, 68, 0.2) !important;
+          color: #dc2626 !important;
           border-radius: 4px !important;
-          opacity: 0.8;
+          font-weight: 800 !important;
           pointer-events: none;
         }
         .fc-timegrid-slot {
