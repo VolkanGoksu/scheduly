@@ -65,7 +65,7 @@ export default function AdminPage() {
     });
 
     if (authError) {
-      alert("Auth Error: " + authError.message);
+      alert("Auth Hatası: " + authError.message);
       setLoading(false);
       return;
     }
@@ -86,7 +86,7 @@ export default function AdminPage() {
     });
 
     if (profileError) {
-      alert("Profile Error: " + profileError.message);
+      alert("Profil Hatası: " + profileError.message);
     } else {
       for (const s of staffMembers) {
         if (s.name.trim()) {
@@ -107,8 +107,14 @@ export default function AdminPage() {
   const deleteProvider = async (id: string) => {
     if (!confirm("Bu işletmeyi tamamen silmek istediğine emin misin?")) return;
     const { error } = await supabase.from("users").delete().eq("id", id);
-    if (error) alert(error.message);
-    else fetchProviders();
+    if (error) {
+      console.error("Delete Error:", error);
+      alert("Silme Hatası: " + error.message);
+    } else {
+      alert("İşletme başarıyla silindi.");
+      setSelectedProvider(null);
+      fetchProviders();
+    }
   };
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
@@ -120,19 +126,34 @@ export default function AdminPage() {
   const setTrial = async (id: string) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
-    await supabase.from("users").update({ expires_at: expiresAt.toISOString(), is_active: true }).eq("id", id);
-    fetchProviders();
+    const { error } = await supabase.from("users").update({ 
+      expires_at: expiresAt.toISOString(), 
+      is_active: true 
+    }).eq("id", id);
+    
+    if (error) alert("Güncelleme Hatası: " + error.message);
+    else {
+      alert("7 Günlük Deneme Tanımlandı.");
+      fetchProviders();
+    }
   };
 
   const extendSubscription = async (id: string, months: number, currentExpiry: string | null) => {
     const baseDate = currentExpiry ? new Date(currentExpiry) : new Date();
     const newExpiry = new Date(baseDate);
     newExpiry.setMonth(newExpiry.getMonth() + months);
-    await supabase.from("users").update({ expires_at: newExpiry.toISOString(), is_active: true }).eq("id", id);
-    fetchProviders();
+    const { error } = await supabase.from("users").update({ 
+      expires_at: newExpiry.toISOString(), 
+      is_active: true 
+    }).eq("id", id);
+    
+    if (error) alert("Güncelleme Hatası: " + error.message);
+    else {
+      alert("Abonelik uzatıldı.");
+      fetchProviders();
+    }
   };
 
-  // Staff Management In Modal
   const addStaffToProvider = async () => {
     if (!newStaffName.trim()) return;
     const { error } = await supabase.from("staff").insert({
@@ -153,11 +174,6 @@ export default function AdminPage() {
     else fetchStaffForProvider(selectedProvider.id);
   };
 
-  const openProviderDetails = (provider: any) => {
-    setSelectedProvider(provider);
-    fetchStaffForProvider(provider.id);
-  };
-
   if (!isAdmin) return <div className="p-20 text-center font-bold">Checking Admin Access...</div>;
 
   return (
@@ -166,9 +182,9 @@ export default function AdminPage() {
         <header className="flex justify-between items-center mb-12">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black tracking-tightest">SCHEDULY ADMIN</h1>
-            <span className="bg-black dark:bg-white text-white dark:text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">MASTER</span>
+            <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">GÜVENLİ MASTER</span>
           </div>
-          <button onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-xl font-bold text-xs">
+          <button onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-xl font-bold text-xs uppercase">
             {lang.toUpperCase()}
           </button>
         </header>
@@ -178,7 +194,7 @@ export default function AdminPage() {
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] shadow-xl border border-zinc-200 dark:border-zinc-800 h-fit sticky top-8">
               <h2 className="text-xl font-black uppercase mb-8 flex items-center gap-3">
-                <span className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-xs">+</span>
+                <span className="w-8 h-8 bg-black dark:bg-zinc-700 text-white rounded-full flex items-center justify-center text-xs">+</span>
                 {t.addProvider}
               </h2>
               <form onSubmit={handleCreateProvider} className="space-y-6">
@@ -192,10 +208,10 @@ export default function AdminPage() {
                 <div className="space-y-4 p-6 bg-emerald-50 dark:bg-emerald-500/5 rounded-[2.5rem] border-2 border-emerald-100 dark:border-emerald-500/20">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-xs font-black uppercase tracking-widest text-emerald-600">İLK ÇALIŞANLAR</p>
-                    <button type="button" onClick={() => setStaffMembers([...staffMembers, { name: "", phone: "" }])} className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black hover:scale-105 transition-all">+</button>
+                    <button type="button" onClick={() => setStaffMembers([...staffMembers, { name: "", phone: "" }])} className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black hover:scale-105 transition-all shadow-md">+</button>
                   </div>
                   {staffMembers.map((s, i) => (
-                    <div key={i} className="space-y-2 relative p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-emerald-50">
+                    <div key={i} className="space-y-2 relative p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
                       <input type="text" placeholder="İsim" value={s.name} onChange={(e) => { const n = [...staffMembers]; n[i].name = e.target.value; setStaffMembers(n); }} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl outline-none text-sm font-bold" />
                       <input type="tel" placeholder="WP (90...)" value={s.phone} onChange={(e) => { const n = [...staffMembers]; n[i].phone = e.target.value; setStaffMembers(n); }} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl outline-none text-sm font-bold" />
                     </div>
@@ -214,32 +230,34 @@ export default function AdminPage() {
             <h2 className="text-xl font-black uppercase italic mb-8">{t.existingProviders}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {providers.map(p => (
-                <div key={p.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden group hover:shadow-2xl transition-all cursor-pointer" onClick={() => openProviderDetails(p)}>
+                <div key={p.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden group hover:shadow-2xl transition-all cursor-pointer" onClick={() => { setSelectedProvider(p); fetchStaffForProvider(p.id); }}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-black text-xl tracking-tight leading-none mb-1 group-hover:text-emerald-500 transition-colors">{p.business_name}</h3>
+                      <h3 className="font-black text-xl tracking-tight leading-none mb-1 group-hover:text-emerald-500 transition-colors uppercase">{p.business_name}</h3>
                       <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest leading-none">/{p.slug}</p>
                     </div>
                     <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                       <button onClick={() => toggleActive(p.id, p.is_active)} className="w-10 h-10 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm hover:bg-black hover:text-white transition-all">
+                       <button onClick={() => toggleActive(p.id, p.is_active)} className="w-10 h-10 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 rounded-xl text-sm hover:bg-black hover:text-white transition-all shadow-sm">
                         {p.is_active ? '❄️' : '🔥'}
                        </button>
-                       <button onClick={() => deleteProvider(p.id)} className="w-10 h-10 flex items-center justify-center bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl text-sm hover:bg-red-500 hover:text-white transition-all">
+                       <button onClick={() => deleteProvider(p.id)} className="w-10 h-10 flex items-center justify-center bg-red-50 dark:bg-red-500/10 text-red-500 rounded-xl text-sm hover:bg-red-500 hover:text-white transition-all shadow-sm">
                         🗑️
                        </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Abonelik Bitiş</p>
-                    <p className={`text-sm font-bold ${p.expires_at && new Date(p.expires_at) < new Date() ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
-                      {p.expires_at ? new Date(p.expires_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Süre Belirlenmedi'}
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setTrial(p.id)} className="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-all">7 GÜN DENEME</button>
-                    <button onClick={() => extendSubscription(p.id, 1, p.expires_at)} className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:border-black transition-all">+1 AY EKLE</button>
+                  <div className="space-y-4">
+                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl flex justify-between items-center">
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Bitiş Tarihi</p>
+                      <p className={`text-xs font-black ${p.expires_at && new Date(p.expires_at) < new Date() ? 'text-red-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                        {p.expires_at ? new Date(p.expires_at).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }) : '---'}
+                      </p>
+                    </div>
+                    
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => setTrial(p.id)} className="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-all shadow-md">7 GÜN DENEME</button>
+                      <button onClick={() => extendSubscription(p.id, 1, p.expires_at)} className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:border-black dark:hover:border-zinc-500 transition-all shadow-sm">+1 AY EKLE</button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -250,56 +268,64 @@ export default function AdminPage() {
 
       {/* Provider Details & Staff Management Modal */}
       {selectedProvider && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-zinc-900 w-full max-w-4xl rounded-[4rem] shadow-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 animate-in fade-in zoom-in duration-300">
-            <div className="p-8 md:p-12">
-              <div className="flex justify-between items-start mb-12">
-                <div>
-                  <h2 className="text-4xl font-black uppercase tracking-tightest mb-2">{selectedProvider.business_name}</h2>
-                  <div className="flex items-center gap-3">
-                    <p className="text-emerald-500 font-bold tracking-tight">{selectedProvider.email}</p>
-                    <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                    <p className="text-zinc-400 font-medium">/{selectedProvider.slug}</p>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-4xl rounded-[4rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden border border-zinc-100 dark:border-zinc-800 animate-in fade-in zoom-in duration-300">
+            <div className="p-8 md:p-12 relative">
+              <button onClick={() => setSelectedProvider(null)} className="absolute top-8 right-8 w-14 h-14 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-3xl font-light hover:bg-red-500 hover:text-white transition-all shadow-xl">×</button>
+
+              <div className="mb-12">
+                <h2 className="text-4xl font-black uppercase tracking-tightest mb-3 pr-20">{selectedProvider.business_name}</h2>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Kayıtlı Email</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{selectedProvider.email}</p>
+                  </div>
+                  <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-xl">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">URL Adresi</p>
+                    <p className="text-sm font-bold text-emerald-500">scheduly.com/{selectedProvider.slug}</p>
                   </div>
                 </div>
-                <button onClick={() => setSelectedProvider(null)} className="w-14 h-14 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-3xl font-light hover:bg-black hover:text-white transition-all">×</button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 {/* Staff List */}
                 <div className="space-y-6">
-                  <h3 className="text-xl font-black uppercase tracking-widest text-zinc-400">Çalışan Yönetimi</h3>
+                  <h3 className="text-xl font-black uppercase tracking-widest text-zinc-500 flex items-center gap-3">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Mevcut Çalışanlar
+                  </h3>
                   <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
                     {providerStaff.length === 0 && (
-                      <div className="py-12 text-center bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border-2 border-dashed border-zinc-200">
-                        <p className="text-zinc-400 font-bold">Henry henüz çalışan eklenmemiş.</p>
+                      <div className="py-12 text-center bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+                        <p className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Henüz çalışan eklenmemiş</p>
                       </div>
                     )}
                     {providerStaff.map((staff) => (
-                      <div key={staff.id} className="p-6 bg-zinc-50 dark:bg-zinc-800 rounded-3xl flex justify-between items-center group">
+                      <div key={staff.id} className="p-6 bg-zinc-50 dark:bg-zinc-800 rounded-3xl flex justify-between items-center group border border-transparent hover:border-emerald-500/20 transition-all">
                         <div>
-                          <p className="font-black tracking-tight text-lg">{staff.name}</p>
+                          <p className="font-black tracking-tight text-lg uppercase">{staff.name}</p>
                           <p className="text-xs font-bold text-zinc-500">{staff.phone_number}</p>
                         </div>
-                        <button onClick={() => removeStaffFromProvider(staff.id)} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all shadow-sm">🗑️</button>
+                        <button onClick={() => removeStaffFromProvider(staff.id)} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all shadow-md hover:scale-110">🗑️</button>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Add Staff Feature */}
-                <div className="space-y-6 bg-zinc-50 dark:bg-zinc-800/30 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 h-fit">
-                  <h3 className="text-xl font-black uppercase tracking-widest text-emerald-600">Yeni Çalışan Ekle</h3>
+                <div className="space-y-6 bg-emerald-50/50 dark:bg-emerald-500/5 p-8 rounded-[3rem] border border-emerald-100/50 dark:border-emerald-500/10 h-fit">
+                  <h3 className="text-xl font-black uppercase tracking-widest text-emerald-600">Ekibi Genişlet</h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-zinc-400 mb-2">Çalışan İsmi</label>
-                      <input type="text" value={newStaffName} onChange={(e) => setNewStaffName(e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all font-bold" placeholder="Örn: Ahmet Yılmaz" />
+                      <label className="block text-[10px] font-black uppercase text-zinc-400 mb-2">Tam İsim</label>
+                      <input type="text" value={newStaffName} onChange={(e) => setNewStaffName(e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all font-bold" placeholder="Ahmet Y..." />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-zinc-400 mb-2">WP Numarası (90...)</label>
+                      <label className="block text-[10px] font-black uppercase text-zinc-400 mb-2">WhatsApp Numarası</label>
                       <input type="tel" value={newStaffPhone} onChange={(e) => setNewStaffPhone(e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500 transition-all font-bold" placeholder="905..." />
                     </div>
-                    <button onClick={addStaffToProvider} className="w-full bg-emerald-500 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all">EKLE</button>
+                    <button onClick={addStaffToProvider} className="w-full bg-emerald-600 text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-[1.02] transition-all">YENİ ÇALIŞAN EKLE</button>
+                    <p className="text-[10px] text-center text-zinc-400 font-medium">Eklenen her çalışan kendi WhatsApp bildirimi alır.</p>
                   </div>
                 </div>
               </div>
