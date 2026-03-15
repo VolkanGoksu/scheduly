@@ -108,30 +108,27 @@ export default function AdminPage() {
   };
   const deleteProvider = async (id: string) => {
     if (!confirm("BU İŞLETMEYİ TAMAMEN SİLMEK İSTEDİĞİNE EMİN MİSİN?")) return;
-    console.log("Master Admin: Deleting provider with ID:", id);
+    console.log("RPC Call: admin_delete_provider for:", id);
     try {
-      const { error } = await supabase.from("users").delete().eq("id", id);
+      const { error } = await supabase.rpc('admin_delete_provider', { target_id: id });
       if (error) {
-        console.error("Master Admin Delete Error:", error);
-        alert(`❌ SİLME BAŞARISIZ!\nNeden: ${error.message}\nKod: ${error.code}\nLütfen NUCLEAR_RLS_FIX.sql dosyasını çalıştırdığınızdan emin olun.`);
+        console.error("RPC Delete Error:", error);
+        alert(`❌ SİLME BAŞARISIZ!\nNeden: ${error.message}\nLütfen MASTER_ADMIN_RPC.sql dosyasını çalıştırdığınızdan emin olun.`);
         return;
       }
-      console.log("Master Admin: Delete successful.");
       alert("✅ İŞLETME BAŞARIYLA SİLİNDİ!");
       setSelectedProvider(null);
       await fetchProviders();
     } catch (err: any) {
-      console.error("Master Admin Unexpected Catch:", err);
-      alert("Beklenmedik bir sistem hatası: " + err.message);
+      alert("Beklenmedik hata: " + err.message);
     }
   };
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
-    console.log("Master Admin: Toggling status for:", id);
+    console.log("RPC Call: admin_toggle_provider_active for:", id);
     try {
-      const { error } = await supabase.from("users").update({ is_active: !currentStatus }).eq("id", id);
+      const { error } = await supabase.rpc('admin_toggle_provider_active', { target_id: id });
       if (error) {
-        console.error("Master Admin Toggle Error:", error);
         alert(`❌ DURUM DEĞİŞTİRİLEMEDİ: ${error.message}`);
         return;
       }
@@ -143,22 +140,15 @@ export default function AdminPage() {
   };
 
   const setTrial = async (id: string) => {
-    if (!confirm("7 günlük deneme süresi tanımlamak üzeresiniz. Onaylıyor musunuz?")) return;
-    console.log("Master Admin: Setting 7-day trial for:", id);
+    if (!confirm("7 günlük deneme süresi tanımlamak istediğinizden emin misiniz?")) return;
+    console.log("RPC Call: admin_set_provider_trial for:", id);
     try {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-      const { error } = await supabase.from("users").update({ 
-        expires_at: expiresAt.toISOString(), 
-        is_active: true 
-      }).eq("id", id);
-      
+      const { error } = await supabase.rpc('admin_set_provider_trial', { target_id: id });
       if (error) {
-        console.error("Master Admin Trial Error:", error);
         alert(`❌ DENEME AKTİVASYONU BAŞARISIZ!\nNeden: ${error.message}`);
         return;
       }
-      alert("✅ 7 GÜNLÜK DENEME TANIMLANDI VE AKTİF EDİLDİ!");
+      alert("✅ 7 GÜNLÜK DENEME TANIMLANDI!");
       await fetchProviders();
     } catch (err: any) {
       alert("Hata: " + err.message);
@@ -167,23 +157,17 @@ export default function AdminPage() {
 
   const extendSubscription = async (id: string, months: number, currentExpiry: string | null) => {
     if (!confirm("Aboneliği 1 ay uzatmak istediğinize emin misiniz?")) return;
-    console.log("Master Admin: Extending sub for:", id);
+    console.log("RPC Call: admin_extend_provider_subscription for:", id);
     try {
-      const baseDate = (currentExpiry && new Date(currentExpiry) > new Date()) ? new Date(currentExpiry) : new Date();
-      const newExpiry = new Date(baseDate);
-      newExpiry.setMonth(newExpiry.getMonth() + months);
-      
-      const { error } = await supabase.from("users").update({ 
-        expires_at: newExpiry.toISOString(), 
-        is_active: true 
-      }).eq("id", id);
-      
+      const { error } = await supabase.rpc('admin_extend_provider_subscription', { 
+        target_id: id, 
+        months_to_add: months 
+      });
       if (error) {
-        console.error("Master Admin Extend Error:", error);
         alert(`❌ ABONELİK UZATILAMADI!\nNeden: ${error.message}`);
         return;
       }
-      alert("✅ ABONELİK BAŞARIYLA 1 AY UZATILDI!");
+      alert("✅ ABONELİK BAŞARIYLA UZATILDI!");
       await fetchProviders();
     } catch (err: any) {
       alert("Hata: " + err.message);
