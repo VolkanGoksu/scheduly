@@ -27,7 +27,8 @@ export default function DashboardPage() {
         .from("appointments")
         .select(`
           *,
-          services (name)
+          services (name),
+          staff (name)
         `)
         .eq("user_id", user.id)
         .order("date", { ascending: true })
@@ -64,6 +65,7 @@ export default function DashboardPage() {
             >
               {lang.toUpperCase()}
             </button>
+            <button onClick={() => router.push("/dashboard/staff")} className="text-sm font-bold uppercase tracking-widest hover:opacity-70 border-b-2 border-emerald-500 pb-1">{lang === 'tr' ? 'Çalışanlar' : 'Staff'}</button>
             <button onClick={() => router.push("/dashboard/services")} className="text-sm font-bold uppercase tracking-widest hover:opacity-70">{t.services}</button>
             <button onClick={async () => { await supabase.auth.signOut(); router.push("/login"); }} className="text-sm font-bold uppercase tracking-widest text-red-500 hover:opacity-70">{t.logout}</button>
           </div>
@@ -93,7 +95,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Calendar events={appointments.map(a => ({
-                title: `${a.customer_name} - ${a.services?.name}`,
+                title: `${a.customer_name} - ${a.services?.name} (${a.staff?.name || 'Admin'})`,
                 start: `${a.date}T${a.time}`,
                 backgroundColor: a.status === 'confirmed' ? '#10b981' : a.status === 'rejected' ? '#ef4444' : '#f59e0b',
                 borderColor: 'transparent'
@@ -122,7 +124,15 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-black text-lg tracking-tight">{apt.customer_name}</h3>
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{apt.services?.name}</p>
+                        <div className="flex gap-2 items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                          <span>{apt.services?.name}</span>
+                          {apt.staff && (
+                            <>
+                              <span className="w-1 h-1 bg-zinc-300 rounded-full" />
+                              <span className="text-emerald-500">{apt.staff.name}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs font-black bg-zinc-200 dark:bg-zinc-700 px-3 py-1 rounded-full uppercase tracking-widest inline-block">{apt.time.substring(0, 5)}</div>
