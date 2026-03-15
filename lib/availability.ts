@@ -13,13 +13,13 @@ export async function getAvailableSlots(user_id: string, service_duration: numbe
   const startHour = user.start_hour || 9;
   const endHour = user.end_hour || 18;
 
-  // 2️⃣ Get existing confirmed appointments for the specific date
+  // 2️⃣ Get all appointments that are NOT rejected for this date
   const { data: appointments } = await supabase
     .from("appointments")
     .select("time")
     .eq("user_id", user_id)
     .eq("date", date)
-    .eq("status", "confirmed");
+    .neq("status", "rejected");
 
   const bookedTimes = appointments?.map((a: any) => a.time.substring(0, 5)) || [];
 

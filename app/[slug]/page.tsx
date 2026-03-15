@@ -200,17 +200,17 @@ Onayınızı bekliyorum.`;
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black py-12 px-4 md:px-8">
+    <div className="min-h-screen bg-zinc-50 dark:bg-black py-6 md:py-12 px-4 md:px-8">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-12 text-center md:text-left">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-white mb-2">
+        <header className="mb-8 md:mb-12 text-center md:text-left">
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-white mb-2 px-2">
             {user.business_name}
           </h1>
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 font-medium">{lang === 'tr' ? 'Hizmet seçerek başlayın' : 'Select a service to get started'}</p>
+          <div className="flex flex-row justify-between items-center gap-4 px-2">
+            <p className="text-sm md:text-lg text-zinc-600 dark:text-zinc-400 font-medium">{lang === 'tr' ? 'Hizmet seçerek başlayın' : 'Select a service to get started'}</p>
             <button
               onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
-              className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-xl font-bold text-xs uppercase"
+              className="px-3 py-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-lg font-bold text-[10px] md:text-xs uppercase"
             >
               {lang.toUpperCase()}
             </button>

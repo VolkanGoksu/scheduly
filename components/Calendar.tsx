@@ -25,7 +25,7 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
     <div className="premium-calendar-wrapper">
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="timeGridWeek"
+        initialView={typeof window !== 'undefined' && window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek'}
         locale="tr"
         locales={[trLocale]}
         firstDay={1}
@@ -36,14 +36,14 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
         dateClick={handleDateClick}
         eventClick={handleEventClick}
         allDaySlot={false}
-        height="700px"
+        height="auto"
         expandRows={true}
         stickyHeaderDates={true}
         nowIndicator={true}
         headerToolbar={{
-          left: 'prev,next today',
+          left: 'prev,next',
           center: 'title',
-          right: 'timeGridWeek,timeGridDay'
+          right: 'today'
         }}
         slotLabelFormat={{
           hour: '2-digit',
@@ -126,15 +126,17 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
           color: #a1a1aa;
         }
         .premium-event {
-          border: none !important;
-          border-radius: 12px !important;
-          padding: 4px 8px !important;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          background: rgba(16, 185, 129, 0.05) !important;
+          border: 1px dashed #10b981 !important;
+          color: #059669 !important;
+          border-radius: 8px !important;
+          padding: 2px 4px !important;
           cursor: pointer;
-          transition: transform 0.2s;
+          transition: all 0.2s;
         }
         .premium-event:hover {
-          transform: scale(1.02);
+          background: rgba(16, 185, 129, 0.15) !important;
+          transform: translateY(-1px);
         }
         .fc-event-main-frame {
           display: flex;
@@ -142,9 +144,9 @@ const Calendar: React.FC<CalendarProps> = ({ events, onSelect }) => {
           justify-content: center;
         }
         .fc-event-title {
-          font-weight: 900 !important;
+          font-weight: 800 !important;
           text-transform: uppercase !important;
-          font-size: 0.65rem !important;
+          font-size: 0.6rem !important;
           letter-spacing: 0.05em !important;
         }
         .premium-header {
