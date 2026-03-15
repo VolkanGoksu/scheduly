@@ -31,6 +31,8 @@ export default function AdminPage() {
       if (data?.role === 'admin') {
         setIsAdmin(true);
         fetchProviders();
+      } else {
+        router.push("/dashboard");
       }
     }
     checkAdmin();
@@ -52,7 +54,7 @@ export default function AdminPage() {
     });
 
     if (authError) {
-      alert(authError.message);
+      alert("Auth Error: " + authError.message);
       setLoading(false);
       return;
     }
@@ -73,19 +75,17 @@ export default function AdminPage() {
     });
 
     if (profileError) {
-      alert(profileError.message);
+      alert("Profile Error: " + profileError.message);
     } else {
-      // Create staff members
-      for (const staff of staffMembers) {
-        if (staff.name.trim() && staff.phone.trim()) {
+      for (const s of staffMembers) {
+        if (s.name.trim()) {
           await supabase.from("staff").insert({
             user_id: authData.user?.id,
-            name: staff.name,
-            phone_number: staff.phone
+            name: s.name,
+            phone_number: s.phone
           });
         }
       }
-      
       alert(lang === 'tr' ? "İşletme ve Çalışanlar başarıyla oluşturuldu!" : "Provider and Staff created successfully!");
       setEmail(""); setPassword(""); setBusinessName(""); setPhoneNumber(""); setSlug(""); setStaffMembers([{ name: "", phone: "" }]);
       fetchProviders();
@@ -115,8 +115,13 @@ export default function AdminPage() {
       activated_at: new Date().toISOString()
     }).eq("id", id);
     
-    if (error) alert(error.message);
-    else fetchProviders();
+    if (error) {
+      console.error("Trial Error:", error);
+      alert("Hata: " + error.message);
+    } else {
+      alert("7 Günlük Deneme Tanımlandı!");
+      fetchProviders();
+    }
   };
 
   const extendSubscription = async (id: string, months: number, currentExpiry: string | null) => {
@@ -130,8 +135,13 @@ export default function AdminPage() {
       is_active: true,
     }).eq("id", id);
     
-    if (error) alert(error.message);
-    else fetchProviders();
+    if (error) {
+       console.error("Extension Error:", error);
+       alert("Hata: " + error.message);
+    } else {
+      alert(`Abonelik ${months} ay uzatıldı!`);
+      fetchProviders();
+    }
   };
 
   const addStaffField = () => setStaffMembers([...staffMembers, { name: "", phone: "" }]);
@@ -172,17 +182,17 @@ export default function AdminPage() {
                   <input type="text" placeholder={t.urlSlug} value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
                 </div>
 
-                <div className="space-y-4 p-6 bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10">
-                  <div className="flex justify-between items-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{lang === 'tr' ? 'Çalışanlar' : 'Staff members'}</p>
-                    <button type="button" onClick={addStaffField} className="text-[10px] font-bold text-emerald-600 underline">+{lang === 'tr' ? 'Ekle' : 'Add'}</button>
+                <div className="space-y-4 p-6 bg-emerald-50 dark:bg-emerald-500/5 rounded-[2.5rem] border-2 border-emerald-100 dark:border-emerald-500/20">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs font-black uppercase tracking-widest text-emerald-600">{lang === 'tr' ? 'ÇALIŞANLAR' : 'STAFF'}</p>
+                    <button type="button" onClick={addStaffField} className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black hover:scale-105 transition-all">+ EKLE</button>
                   </div>
                   {staffMembers.map((s, i) => (
-                    <div key={i} className="space-y-2 relative pt-4 border-t border-emerald-100/50 first:border-t-0 first:pt-0">
-                      <input type="text" placeholder="İsim" value={s.name} onChange={(e) => updateStaffField(i, 'name', e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl outline-none border border-transparent focus:border-emerald-500 transition-all text-sm font-medium" />
-                      <input type="tel" placeholder="WP (90...)" value={s.phone} onChange={(e) => updateStaffField(i, 'phone', e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl outline-none border border-transparent focus:border-emerald-500 transition-all text-sm font-medium" />
+                    <div key={i} className="space-y-2 relative p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-emerald-50 shadow-sm">
+                      <input type="text" placeholder="İsim" value={s.name} onChange={(e) => updateStaffField(i, 'name', e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl outline-none text-sm font-bold" />
+                      <input type="tel" placeholder="WP (90...)" value={s.phone} onChange={(e) => updateStaffField(i, 'phone', e.target.value)} className="w-full p-3 bg-zinc-50 dark:bg-zinc-900 rounded-xl outline-none text-sm font-bold" />
                       {staffMembers.length > 1 && (
-                        <button type="button" onClick={() => removeStaffField(i)} className="absolute top-0 right-0 text-[10px] text-red-400">Sil</button>
+                        <button type="button" onClick={() => removeStaffField(i)} className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded-full text-xs font-bold">×</button>
                       )}
                     </div>
                   ))}
@@ -200,7 +210,7 @@ export default function AdminPage() {
             <h2 className="text-xl font-black uppercase italic mb-4">{t.existingProviders}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {providers.map(p => (
-                <div key={p.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden group">
+                <div key={p.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
@@ -235,13 +245,12 @@ export default function AdminPage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setTrial(p.id)} className="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-all">7 GÜN DENEME</button>
+                    <button onClick={() => setTrial(p.id)} className="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:scale-[1.02] transition-all">7 GÜN DENEME</button>
                     <button onClick={() => extendSubscription(p.id, 1, p.expires_at)} className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:border-black transition-all">+1 AY EKLE</button>
                   </div>
 
                   <div className="pt-2 flex gap-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
-                    <button onClick={() => router.push(`/dashboard`)} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Panele Git →</button>
-                    <button onClick={() => window.open(`/${p.slug}`, '_blank')} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Siteyi Gör →</button>
+                    <button onClick={() => window.open(`/${p.slug}`, '_blank')} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors underline">Siteyi Gör →</button>
                   </div>
                 </div>
               ))}
