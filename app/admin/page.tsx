@@ -14,9 +14,10 @@ export default function AdminPage() {
   const [businessName, setBusinessName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [slug, setSlug] = useState("");
-  // New Staff State
-  const [staffName, setStaffName] = useState("");
-  const [staffPhone, setStaffPhone] = useState("");
+  
+  // Multiple Staff State
+  const [staffMembers, setStaffMembers] = useState([{ name: "", phone: "" }]);
+  
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<any[]>([]);
   const router = useRouter();
@@ -74,20 +75,71 @@ export default function AdminPage() {
     if (profileError) {
       alert(profileError.message);
     } else {
-      // Create initial staff if provided
-      if (staffName && staffPhone) {
-        await supabase.from("staff").insert({
-          user_id: authData.user?.id,
-          name: staffName,
-          phone_number: staffPhone
-        });
+      // Create staff members
+      for (const staff of staffMembers) {
+        if (staff.name.trim() && staff.phone.trim()) {
+          await supabase.from("staff").insert({
+            user_id: authData.user?.id,
+            name: staff.name,
+            phone_number: staff.phone
+          });
+        }
       }
       
-      alert(lang === 'tr' ? "İşletme ve Çalışan başarıyla oluşturuldu!" : "Provider and Staff created successfully!");
-      setEmail(""); setPassword(""); setBusinessName(""); setPhoneNumber(""); setSlug(""); setStaffName(""); setStaffPhone("");
+      alert(lang === 'tr' ? "İşletme ve Çalışanlar başarıyla oluşturuldu!" : "Provider and Staff created successfully!");
+      setEmail(""); setPassword(""); setBusinessName(""); setPhoneNumber(""); setSlug(""); setStaffMembers([{ name: "", phone: "" }]);
       fetchProviders();
     }
     setLoading(false);
+  };
+
+  const deleteProvider = async (id: string) => {
+    if (!confirm(lang === 'tr' ? "Bu işletmeyi silmek istediğine emin misin? Bu işlem geri alınamaz." : "Are you sure you want to delete this provider? This cannot be undone.")) return;
+    const { error } = await supabase.from("users").delete().eq("id", id);
+    if (error) alert(error.message);
+    else fetchProviders();
+  };
+
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from("users").update({ is_active: !currentStatus }).eq("id", id);
+    if (error) alert(error.message);
+    else fetchProviders();
+  };
+
+  const setTrial = async (id: string) => {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    const { error } = await supabase.from("users").update({ 
+      expires_at: expiresAt.toISOString(),
+      is_active: true,
+      activated_at: new Date().toISOString()
+    }).eq("id", id);
+    
+    if (error) alert(error.message);
+    else fetchProviders();
+  };
+
+  const extendSubscription = async (id: string, months: number, currentExpiry: string | null) => {
+    const baseDate = currentExpiry ? new Date(currentExpiry) : new Date();
+    if (baseDate < new Date()) baseDate.setTime(new Date().getTime());
+    const newExpiry = new Date(baseDate);
+    newExpiry.setMonth(newExpiry.getMonth() + months);
+    
+    const { error } = await supabase.from("users").update({ 
+      expires_at: newExpiry.toISOString(),
+      is_active: true,
+    }).eq("id", id);
+    
+    if (error) alert(error.message);
+    else fetchProviders();
+  };
+
+  const addStaffField = () => setStaffMembers([...staffMembers, { name: "", phone: "" }]);
+  const removeStaffField = (index: number) => setStaffMembers(staffMembers.filter((_, i) => i !== index));
+  const updateStaffField = (index: number, field: 'name' | 'phone', value: string) => {
+    const newStaff = [...staffMembers];
+    newStaff[index][field] = value;
+    setStaffMembers(newStaff);
   };
 
   if (!isAdmin) return <div className="p-20 text-center font-bold">Checking Admin Access...</div>;
@@ -96,62 +148,100 @@ export default function AdminPage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-12">
-          <h1 className="text-4xl font-black uppercase tracking-tightest">ADMIN PANEL</h1>
-          <button onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-xl font-bold text-xs">
+          <h1 className="text-2xl md:text-4xl font-black uppercase tracking-tightest">SCHEDULY ADMIN</h1>
+          <button onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 rounded-xl font-bold text-xs uppercase">
             {lang.toUpperCase()}
           </button>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Create Form */}
-          <div className="lg:col-span-1 bg-white dark:bg-zinc-900 p-8 rounded-[3rem] shadow-xl border border-zinc-200 dark:border-zinc-800 h-fit">
-            <h2 className="text-xl font-black uppercase mb-8 italic">{t.addProvider}</h2>
-            <form onSubmit={handleCreateProvider} className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Giriş Bilgileri</p>
-                <input type="email" placeholder={t.email} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
-                <input type="password" placeholder={t.password} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">İşletme Bilgileri</p>
-                <input type="text" placeholder={t.businessName} value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
-                <input type="text" placeholder={t.urlSlug} value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
-              </div>
+          <div className="lg:col-span-1 space-y-8">
+            <div className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] shadow-xl border border-zinc-200 dark:border-zinc-800 h-fit">
+              <h2 className="text-xl font-black uppercase mb-8 italic">{t.addProvider}</h2>
+              <form onSubmit={handleCreateProvider} className="space-y-6">
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Giriş Bilgileri</p>
+                  <input type="email" placeholder={t.email} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
+                  <input type="password" placeholder={t.password} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">İşletme Bilgileri</p>
+                  <input type="text" placeholder={t.businessName} value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
+                  <input type="text" placeholder={t.urlSlug} value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl outline-none border border-transparent focus:border-black transition-all" required />
+                </div>
 
-              <div className="space-y-2 p-4 bg-emerald-50 dark:bg-emerald-500/5 rounded-3xl border border-emerald-100 dark:border-emerald-500/10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">İlk Çalışanı Ekle (Opsiyonel)</p>
-                <input type="text" placeholder="Çalışan İsmi" value={staffName} onChange={(e) => setStaffName(e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl outline-none border border-transparent focus:border-emerald-500 transition-all text-sm font-medium" />
-                <input type="tel" placeholder="Çalışan WP (90...)" value={staffPhone} onChange={(e) => setStaffPhone(e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl outline-none border border-transparent focus:border-emerald-500 transition-all text-sm font-medium" />
-              </div>
+                <div className="space-y-4 p-6 bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/10">
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{lang === 'tr' ? 'Çalışanlar' : 'Staff members'}</p>
+                    <button type="button" onClick={addStaffField} className="text-[10px] font-bold text-emerald-600 underline">+{lang === 'tr' ? 'Ekle' : 'Add'}</button>
+                  </div>
+                  {staffMembers.map((s, i) => (
+                    <div key={i} className="space-y-2 relative pt-4 border-t border-emerald-100/50 first:border-t-0 first:pt-0">
+                      <input type="text" placeholder="İsim" value={s.name} onChange={(e) => updateStaffField(i, 'name', e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl outline-none border border-transparent focus:border-emerald-500 transition-all text-sm font-medium" />
+                      <input type="tel" placeholder="WP (90...)" value={s.phone} onChange={(e) => updateStaffField(i, 'phone', e.target.value)} className="w-full p-4 bg-white dark:bg-zinc-900 rounded-xl outline-none border border-transparent focus:border-emerald-500 transition-all text-sm font-medium" />
+                      {staffMembers.length > 1 && (
+                        <button type="button" onClick={() => removeStaffField(i)} className="absolute top-0 right-0 text-[10px] text-red-400">Sil</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-              <button disabled={loading} className="w-full bg-black dark:bg-white text-white dark:text-black py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-xl">
-                {loading ? '...' : t.addProvider}
-              </button>
-            </form>
+                <button disabled={loading} className="w-full bg-black dark:bg-white text-white dark:text-black py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] hover:scale-[1.02] transition-all shadow-xl">
+                  {loading ? '...' : t.addProvider}
+                </button>
+              </form>
+            </div>
           </div>
 
-          {/* List */}
+          {/* Provider List */}
           <div className="lg:col-span-2 space-y-6">
             <h2 className="text-xl font-black uppercase italic mb-4">{t.existingProviders}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {providers.map(p => (
-                <div key={p.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6">
+                <div key={p.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[3rem] border border-zinc-100 dark:border-zinc-800 shadow-xl space-y-6 relative overflow-hidden group">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-black text-xl tracking-tight leading-none mb-2">{p.business_name}</h3>
-                      <p className="text-xs font-bold text-zinc-400">/{p.slug}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-black text-xl tracking-tight leading-none">{p.business_name}</h3>
+                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${p.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                          {p.is_active ? 'Açık' : 'Kapalı'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">/{p.slug}</p>
                     </div>
                     <div className="flex gap-2">
-                       <button onClick={() => supabase.from("users").update({ is_active: !p.is_active }).eq("id", p.id).then(fetchProviders)} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl text-lg hover:scale-110 transition-all">
+                       <button onClick={() => toggleActive(p.id, p.is_active)} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl text-lg hover:bg-black hover:text-white transition-all">
                         {p.is_active ? '❄️' : '🔥'}
+                       </button>
+                       <button onClick={() => deleteProvider(p.id)} className="p-3 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-2xl text-lg hover:bg-red-500 hover:text-white transition-all">
+                        🗑️
                        </button>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">{t.expiresAt}</p>
+                      <p className={`text-sm font-bold ${p.expires_at && new Date(p.expires_at) < new Date() ? 'text-red-500' : ''}`}>
+                        {p.expires_at ? new Date(p.expires_at).toLocaleDateString('tr-TR') : 'Sınırsız'}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Durum</p>
+                      <p className="text-sm font-bold">{p.is_active ? 'Aktif' : 'Donduruldu'}</p>
+                    </div>
+                  </div>
                   
-                  <div className="flex gap-2">
-                    <button onClick={() => router.push(`/dashboard`)} className="flex-1 bg-zinc-100 dark:bg-zinc-800 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all">PANELE GİT</button>
-                    <button onClick={() => window.open(`/${p.slug}`, '_blank')} className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:border-black transition-all">GÖRÜNTÜLE</button>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setTrial(p.id)} className="flex-1 bg-zinc-900 dark:bg-white text-white dark:text-black py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:scale-105 transition-all">7 GÜN DENEME</button>
+                    <button onClick={() => extendSubscription(p.id, 1, p.expires_at)} className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:border-black transition-all">+1 AY EKLE</button>
+                  </div>
+
+                  <div className="pt-2 flex gap-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
+                    <button onClick={() => router.push(`/dashboard`)} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Panele Git →</button>
+                    <button onClick={() => window.open(`/${p.slug}`, '_blank')} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-colors">Siteyi Gör →</button>
                   </div>
                 </div>
               ))}
