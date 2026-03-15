@@ -188,8 +188,8 @@ export default function BookingPage() {
       const approvalUrl = `${baseUrl}/approve/${newApp.id}`;
       
       const message = lang === 'tr' 
-        ? `Merhaba ${selectedStaff.name}, ${targetDate} tarihinde saat ${targetTime} için ${selectedService.name} randevusu oluşturuldu. Onaylamak veya reddetmek için tıklayın: ${approvalUrl}`
-        : `Hello ${selectedStaff.name}, a new appointment for ${selectedService.name} has been booked on ${targetDate} at ${targetTime}. Click to approve or reject: ${approvalUrl}`;
+        ? `*Yeni Randevu Bildirimi* 📅\n\nMerhaba *${selectedStaff.name}*, ${targetDate} tarihinde saat *${targetTime}* için *${selectedService.name}* randevusu oluşturuldu.\n\nRandevuyu onaylamak veya reddetmek için lütfen tıklayın: ${approvalUrl}`
+        : `*New Appointment Notification* 📅\n\nHello *${selectedStaff.name}*, a new appointment for *${selectedService.name}* has been booked on ${targetDate} at *${targetTime}*.\n\nPlease click here to approve or reject: ${approvalUrl}`;
       
       const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, "_blank");
