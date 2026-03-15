@@ -76,15 +76,26 @@ export default function AdminPage() {
       }
 
       // 2. Sign up using NO-SESSION client (keeps admin logged in)
+      console.log("Attempting Auth SignUp for:", email.trim());
       const { data: authData, error: authError } = await supabaseNoSession.auth.signUp({
         email: email.trim(),
         password,
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Kullanıcı oluşturulamadı.");
+      if (authError) {
+        console.error("Auth SignUp Error Details:", authError);
+        if (authError.status === 422 || authError.message?.toLowerCase().includes("already registered")) {
+          alert("BU EMAIL ZATEN KAYITLI!\n\nBu kullanıcı Supabase sisteminde zaten var. Lütfen başka bir mail adresi kullanın veya bu maili Supabase Auth panelinden silin.");
+        } else {
+          alert(`Auth Hatası (${authError.status}): ${authError.message}`);
+        }
+        setLoading(false);
+        return;
+      }
 
+      if (!authData.user) throw new Error("Kullanıcı oluşturulamadı.");
       const userId = authData.user.id;
+      console.log("Auth Success. User ID:", userId);
 
       // 3. Create Profile
       const expiresAt = new Date();
@@ -102,7 +113,12 @@ export default function AdminPage() {
         expires_at: expiresAt.toISOString()
       });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile Insert Error:", profileError);
+        alert(`Profil Kayıt Hatası: ${profileError.message}`);
+        setLoading(false);
+        return;
+      }
 
       // 4. Create Staff
       for (const s of staffMembers) {
@@ -234,6 +250,7 @@ export default function AdminPage() {
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black tracking-tightest">ADMINMASTER</h1>
             <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">AKTİF</span>
+            <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 px-2 py-1 rounded-lg text-[8px] font-black">v3.1 Stable</span>
           </div>
           <button onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} className="px-4 py-2 bg-white dark:bg-zinc-800 rounded-2xl font-black text-[10px] uppercase shadow-sm border border-zinc-200 dark:border-zinc-700">
             {lang.toUpperCase()}
