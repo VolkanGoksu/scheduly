@@ -53,12 +53,19 @@ export default function BookingPage() {
         .select("*")
         .eq("user_id", userData.id);
       setServices(servicesData || []);
+
+      const { data: staffData } = await supabase
+        .from("staff")
+        .select("*")
+        .eq("user_id", userData.id)
+        .eq("is_active", true);
+      setStaff(staffData || []);
     }
 
     fetchData();
   }, [slug]);
 
-  // 2️⃣ Load booked slots (to show them as busy)
+  // 2️⃣ Load booked slots (to show them as busy) - FILTERED BY SELECTED STAFF
   useEffect(() => {
     if (!user) return;
 
@@ -71,12 +78,18 @@ export default function BookingPage() {
         targetDate.setDate(now.getDate() + i);
         const dateStr = targetDate.toISOString().split('T')[0];
         
-        const { data: appointments } = await supabase
+        let query = supabase
           .from("appointments")
           .select("time, status")
           .eq("user_id", user.id)
           .eq("date", dateStr)
           .neq("status", "rejected");
+
+        if (selectedStaff) {
+          query = query.eq("staff_id", selectedStaff.id);
+        }
+
+        const { data: appointments } = await query;
 
         if (appointments) {
           appointments.forEach(app => {
@@ -101,7 +114,7 @@ export default function BookingPage() {
     }
 
     fetchBookedData();
-  }, [user, lang]);
+  }, [user, selectedStaff, lang]);
 
   const handleSelectSlot = (start: string) => {
     // Check if slot is in the past
@@ -117,27 +130,48 @@ export default function BookingPage() {
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSlot || !selectedService || !user) return;
+    if (!selectedSlot || !selectedService || !user || !selectedStaff) return;
     setBookingLoading(true);
 
-    const [date, time] = selectedSlot.split('T');
+    const [targetDate, targetTime] = selectedSlot.split('T');
 
-    const { data, error } = await supabase.from("appointments").insert({
-      user_id: user.id,
-      service_id: selectedService.id,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      date,
-      time,
-    }).select('id').single();
+    try {
+      const { data: newApp, error: appError } = await supabase
+        .from("appointments")
+        .insert({
+          user_id: user.id,
+          service_id: selectedService.id,
+          staff_id: selectedStaff.id,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          date: targetDate,
+          time: targetTime,
+          status: 'pending'
+        })
+        .select('id')
+        .single();
 
-    if (error) {
-      alert(error.message);
-    } else {
-      setAppointmentId(data.id);
+      if (appError) throw appError;
+
+      // 4️⃣ Generate WhatsApp Link for the selected staff
+      const staffPhone = selectedStaff.phone_number || user.phone_number;
+      const baseUrl = window.location.origin;
+      const approvalUrl = `${baseUrl}/approve/${newApp.id}`;
+      
+      const message = lang === 'tr' 
+        ? `Merhaba ${selectedStaff.name}, ${targetDate} tarihinde saat ${targetTime} için ${selectedService.name} randevusu oluşturuldu. Onaylamak veya reddetmek için tıklayın: ${approvalUrl}`
+        : `Hello ${selectedStaff.name}, a new appointment for ${selectedService.name} has been booked on ${targetDate} at ${targetTime}. Click to approve or reject: ${approvalUrl}`;
+      
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${staffPhone}&text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank");
+
+      setAppointmentId(newApp.id);
       setSuccess(true);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setBookingLoading(false);
     }
-    setBookingLoading(false);
   };
 
   if (!user) return <div className="flex h-screen items-center justify-center font-medium">{t.loading}</div>;
@@ -267,13 +301,58 @@ Onayınızı bekliyorum.`;
             ))}
           </div>
 
-          {/* Calendar Section */}
-          <div className="lg:col-span-2">
-            {!selectedService ? (
-              <div className="h-full min-h-[500px] flex flex-col items-center justify-center border-4 border-dashed border-zinc-100 dark:border-zinc-900 rounded-[3rem] text-zinc-400 font-medium text-lg p-12 text-center bg-white/30 dark:bg-zinc-900/30 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4 text-2xl">⚡</div>
-                {t.chooseService}
-              </div>
+          {/* Staff Selection Section */}
+          <div className="mb-12">
+            <h2 className="text-xl font-bold mb-4 px-2">{lang === 'tr' ? 'Profesyonel Seçin' : 'Select Professional'}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 px-2">
+              {staff.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedStaff(s)}
+                  className={`relative p-4 rounded-2xl border-2 transition-all text-left flex flex-col items-center justify-center gap-2 group ${
+                    selectedStaff?.id === s.id
+                      ? "border-emerald-500 bg-emerald-50/50 shadow-lg shadow-emerald-500/10"
+                      : "border-zinc-200 hover:border-zinc-400 bg-white dark:bg-zinc-900 dark:border-zinc-800"
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                    selectedStaff?.id === s.id ? "bg-emerald-500 text-white" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                  }`}>
+                    {s.name[0].toUpperCase()}
+                  </div>
+                  <span className="font-bold text-sm text-center">{s.name}</span>
+                  {selectedStaff?.id === s.id && (
+                    <div className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-2 md:px-0">
+            {/* Calendar Section */}
+            <div className="lg:col-span-2">
+              {!selectedService || !selectedStaff ? (
+                <div className="h-full min-h-[500px] flex flex-col items-center justify-center border-4 border-dashed border-zinc-100 dark:border-zinc-900 rounded-[40px] p-8 text-center bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm">
+                  <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-4 flex items-center justify-center text-2xl">
+                    {!selectedService ? '✨' : '👤'}
+                  </div>
+                  <p className="text-zinc-500 font-bold max-w-xs">
+                    {!selectedService 
+                      ? (lang === 'tr' ? 'Önce randevu almak istediğiniz hizmeti seçmelisiniz' : 'Select a service first to continue')
+                      : (lang === 'tr' ? 'Lütfen hizmet verecek profesionali seçin' : 'Please select a professional to continue')}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-zinc-900 rounded-[40px] shadow-2xl shadow-zinc-200/50 dark:shadow-none border border-zinc-100 dark:border-zinc-800 p-2 md:p-6 overflow-hidden">
+                  <Calendar 
+                    events={events} 
+                    onSelect={handleSelectSlot} 
+                  />
+                </div>
+              )}
+            </div>
+             </div>
             ) : (
               <div className="bg-white dark:bg-zinc-950 p-6 md:p-10 rounded-[3rem] shadow-2xl border border-zinc-100 dark:border-zinc-900 animate-in fade-in slide-in-from-right-8 duration-500">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
