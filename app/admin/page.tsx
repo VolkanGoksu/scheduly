@@ -199,7 +199,8 @@ export default function AdminPage() {
         months_to_add: months 
       });
       if (error) {
-        alert(`❌ ABONELİK UZATILAMADI!\nNeden: ${error.message}`);
+        console.error("RPC Extend Error:", error);
+        alert(`❌ ABONELİK UZATILAMADI!\n\nFonksiyon: admin_extend_provider_subscription\nHata: ${error.message}\n\nÇözüm: Lütfen ADMIN_RECOVERY.sql dosyasını Supabase SQL Editor'de çalıştırın.`);
         return;
       }
       alert("✅ ABONELİK BAŞARIYLA UZATILDI!");
@@ -250,7 +251,11 @@ export default function AdminPage() {
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-black tracking-tightest">ADMINMASTER</h1>
             <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">AKTİF</span>
-            <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 px-2 py-1 rounded-lg text-[8px] font-black">v3.1 Stable</span>
+            <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 px-2 py-1 rounded-lg text-[8px] font-black">v3.2 Stable</span>
+            <div className="flex items-center gap-2 px-3 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              <span className="text-[10px] font-bold text-zinc-500">ROLU:</span>
+              <span className="text-[10px] font-black uppercase text-emerald-600">Admin</span>
+            </div>
           </div>
           <button onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')} className="px-4 py-2 bg-white dark:bg-zinc-800 rounded-2xl font-black text-[10px] uppercase shadow-sm border border-zinc-200 dark:border-zinc-700">
             {lang.toUpperCase()}
